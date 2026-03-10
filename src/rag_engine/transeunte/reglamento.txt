@@ -1,0 +1,108 @@
+# Información General del Consultorio
+* **Horario de Atención:** Lunes a Viernes, de 9 AM a 5 PM.
+* **Fines de Semana:** No se atiende.
+* **Consulta Inicial (General):**
+    * **Costo:** $50.
+    * **Duración:** 30 minutos.
+
+### Procedimiento General ante el CGREG (7 Pasos)
+
+**1️. Escoger el tipo de trámite y reunir los requisitos**
+* A. Definir el tipo de autorización de TRANSEÚNTE
+* Según la LOREG (art. 42) y el Reglamento de Migración y Residencia, existen las siguientes modalidades de transeúntes.
+
+**2️. Ingresar al sistema del Consejo de Gobierno**
+* Con el usuario y clave otorgados previamente por el CGREG, el auspiciante o su delegado ingresa al sistema informático institucional.
+
+**3️. Seleccionar el trámite en el sistema**
+* Ir al módulo “TRÁMITES DE RESIDENCIA”.
+* Escoger si es:
+    * Primera vez
+    * Renovación
+    * Revocatoria
+* Luego seleccionar el motivo de calificación según la modalidad de TRANSEÚNTE definida anteriormente.
+
+**4️. Ingresar el número de cédula del responsable (auspiciante)**
+* Registrar el número de cédula o RUC del responsable:
+    * Si es persona natural: el residente permanente auspiciante.
+    * Si es persona jurídica: el representante legal registrado.
+
+**5️. Establecer el tiempo de autorización solicitado**
+* Ingresar el plazo requerido, recordando que el máximo permitido es de 90 días en un año, según el artículo 42 de la LOREG.
+
+**6️. Ingresar el número de cédula o pasaporte del beneficiario**
+* Finalmente, registrar el número de cédula o pasaporte de la persona auspiciada, para quien se solicita la categoría de transeúnte.
+
+**7️. Llenar el formulario oficial, adjuntar los requisitos y presentar en ventanillas**
+* Completar el formulario establecido por el CGREG, generado en línea o en físico según el procedimiento.
+* Adjuntar todos los requisitos específicos de acuerdo al tipo de autorización seleccionada.
+* Presentar el expediente completo en las ventanillas del Consejo de Gobierno del cantón correspondiente (San Cristóbal, Santa Cruz o Isabela) o remitirlo por medios electrónicos con firma electrónica reconocida.
+
+### Tipos de TRANSEÚNTE y Requisitos (Resolución Nro. CGREG-ST-2025-071-R, Sección V)
+
+**1️. Servidor público**
+* Oficio de la entidad pública solicitante.
+* Documento de autorización institucional para la comisión de servicios.
+* Credencial institucional o documento que certifique relación de dependencia.
+* Para extranjeros: pasaporte o documento nacional vigente.
+
+**2️. Servidor público / médicos rurales mientras se legaliza contrato**
+* Oficio de la entidad solicitante.
+* Documento del Ministerio de Salud sobre elección de plaza.
+* Documento de aceptación de la plaza.
+* Para extranjeros: pasaporte vigente o cédula.
+
+**3️. Prácticas de estudiantes de la Escuela de Marina Mercante**
+* Documento que acredite pasantía emitido por la Escuela.
+* Credencial de estudiante.
+* Para extranjeros: pasaporte vigente o documento nacional.
+
+**4️⃣. Tour líder**
+* Salvoconducto expedido por la Autoridad Nacional de Turismo.
+* Para extranjeros: pasaporte o documento nacional vigente.
+
+**5️. Meseros/as en discotecas o bares pool/billar**
+* Contrato de trabajo firmado electrónicamente.
+* Patente municipal vigente del auspiciante.
+* Permiso de funcionamiento vigente.
+* Certificado actualizado del RUC del auspiciante.
+* Pasaje aéreo de ida y retorno.
+* Para extranjeros: pasaporte o documento nacional vigente.
+
+**6️. Trabajadoras sexuales**
+* Permiso de funcionamiento vigente del auspiciante.
+* Declaración juramentada voluntaria.
+* Tarjeta de Salud Integral del MSP actualizada.
+* Pasaje aéreo de ida y retorno.
+
+**7️. Personal adjudicatario de un proceso de contratación pública**
+* Copia de resolución y contrato de adjudicación.
+* Contrato complementario o acto administrativo que prorrogue plazos (si aplica).
+* Contrato de trabajo del personal.
+* Para extranjeros: pasaporte o documento nacional vigente.
+
+**8️. Estudiantes de universidades domiciliadas en Galápagos**
+* Credencial y certificado de matrícula del estudiante.
+* Documento de justificación de la universidad.
+* Convenio entre universidades (si es extranjero).
+* Cronograma de actividades firmado.
+* Para extranjeros: pasaporte o documento nacional vigente.
+
+**9️. Organizaciones no domiciliadas en Galápagos bajo auspicio del CGREG**
+* Convenio o carta de invitación oficial con el CGREG detallando motivo de visita.
+* Agenda de trabajo.
+* Cédula o pasaporte según nacionalidad.
+
+**10️. Socios, accionistas, administradores y empleados de personas jurídicas domiciliadas en Galápagos**
+* Nombramiento o documento que acredite calidad del socio, accionista o administrador.
+* Contrato de trabajo para empleados ecuatorianos (fuera de Galápagos).
+* Para extranjeros: certificado laboral y pasaporte/documento vigente.
+
+**11️. Colaboradores en atención y prevención de catástrofes**
+* Certificación o credencial de la entidad pública o privada que respalde la misión.
+* Para extranjeros: pasaporte o documento nacional vigente.
+
+**12️. Voluntarios**
+* Estatuto de constitución y reformas de la entidad auspiciante (ONG, fundación, educativa).
+* Convenio detallado del programa de voluntariado con firma electrónica, incluyendo:
+    * Denominación, fines, actividades, duración, lugares, recursos, financiamiento, mecanismos de seguimiento y responsabilidad.

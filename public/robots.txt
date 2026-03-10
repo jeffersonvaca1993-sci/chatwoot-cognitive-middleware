@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /api/
+Disallow: /webhooks/
+
+# Ocultar el subdominio de webhook
+User-agent: *
+Disallow: /

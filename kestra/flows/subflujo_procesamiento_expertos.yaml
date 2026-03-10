@@ -1,0 +1,167 @@
+id: subflujo_procesamiento_expertos
+namespace: sci.vacasantana
+
+description: |
+  Subflujo reutilizable para procesamiento de expertos MoE.
+  
+  ARQUITECTURA AGNÓSTICA:
+  - Recibe una SenalAgente
+  - Lee configuración desde senal.instruccion.configuracion_negocio
+  - Ejecuta: Router → Fan-Out (expertos) → Fan-In → Síntesis
+  - Retorna SenalAgente enriquecida
+  
+  CONFIGURACIÓN EN LA SEÑAL:
+  La señal debe incluir en instruccion.configuracion_negocio:
+  - expertos: ["ANALISIS_LEGAL", "ANALISIS_FINANCIERO", "RAG_CONOCIMIENTO"]
+  - ejecutar_router: true
+  - estrategia_sintesis: "SINTETIZADOR_PARCIAL"
+  - config_sintesis: {...}
+
+inputs:
+  - id: senal_entrada
+    type: JSON
+    description: "SenalAgente a procesar (incluye configuración en instruccion.configuracion_negocio)"
+
+tasks:
+  # ==========================================================================
+  # PASO 1: ROUTER INTELIGENTE (Opcional)
+  # ==========================================================================
+  - id: 1_router_inteligente
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ inputs.senal_entrada.instruccion.configuracion_negocio.ejecutar_router ?? true }}"
+    then:
+      - id: ejecutar_router
+        type: io.kestra.plugin.core.http.Request
+        uri: "http://moe_api:8000/api/v1/procesar_nodo"
+        method: POST
+        contentType: "application/json"
+        body: |
+          {
+            "meta": {{ inputs.senal_entrada.meta | json }},
+            "instruccion": {
+              "tipo_estrategia": "ROUTER_INTELIGENTE",
+              "configuracion_negocio": {{ inputs.senal_entrada.instruccion.configuracion_negocio | json }}
+            },
+            "historial_chat": {{ inputs.senal_entrada.historial_chat | json }},
+            "contexto": {{ inputs.senal_entrada.contexto | json }},
+            "entrada": {{ inputs.senal_entrada.entrada | json }},
+            "analisis": null
+          }
+        timeout: PT30S
+    else:
+      - id: skip_router
+        type: io.kestra.plugin.core.log.Log
+        message: "Router deshabilitado, usando señal original"
+
+  # ==========================================================================
+  # PASO 2: FAN-OUT - Procesamiento paralelo de expertos
+  # ==========================================================================
+  - id: 2_procesamiento_expertos
+    type: io.kestra.plugin.core.flow.Parallel
+    tasks:
+      # Experto 1
+      - id: experto_1
+        type: io.kestra.plugin.core.http.Request
+        uri: "http://moe_api:8000/api/v1/procesar_nodo"
+        method: POST
+        contentType: "application/json"
+        body: |
+          {
+            "meta": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).meta | json }},
+            "instruccion": {
+              "tipo_estrategia": {{ inputs.senal_entrada.instruccion.configuracion_negocio.expertos[0] | json }},
+              "configuracion_negocio": {}
+            },
+            "historial_chat": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).historial_chat | json }},
+            "contexto": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).contexto | json }},
+            "entrada": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).entrada | json }},
+            "analisis": null
+          }
+        timeout: PT60S
+
+      # Experto 2
+      - id: experto_2
+        type: io.kestra.plugin.core.http.Request
+        uri: "http://moe_api:8000/api/v1/procesar_nodo"
+        method: POST
+        contentType: "application/json"
+        body: |
+          {
+            "meta": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).meta | json }},
+            "instruccion": {
+              "tipo_estrategia": {{ inputs.senal_entrada.instruccion.configuracion_negocio.expertos[1] | json }},
+              "configuracion_negocio": {}
+            },
+            "historial_chat": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).historial_chat | json }},
+            "contexto": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).contexto | json }},
+            "entrada": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).entrada | json }},
+            "analisis": null
+          }
+        timeout: PT60S
+
+      # Experto 3
+      - id: experto_3
+        type: io.kestra.plugin.core.http.Request
+        uri: "http://moe_api:8000/api/v1/procesar_nodo"
+        method: POST
+        contentType: "application/json"
+        body: |
+          {
+            "meta": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).meta | json }},
+            "instruccion": {
+              "tipo_estrategia": {{ inputs.senal_entrada.instruccion.configuracion_negocio.expertos[2] | json }},
+              "configuracion_negocio": {}
+            },
+            "historial_chat": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).historial_chat | json }},
+            "contexto": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).contexto | json }},
+            "entrada": {{ (outputs['1_router_inteligente']['ejecutar_router'].body ?? inputs.senal_entrada).entrada | json }},
+            "analisis": null
+          }
+        timeout: PT60S
+
+  # ==========================================================================
+  # PASO 3: FAN-IN - Unificación de resultados
+  # ==========================================================================
+  - id: 3_unificacion_resultados
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://moe_api:8000/api/v1/herramientas/join"
+    method: POST
+    contentType: "application/json"
+    body: |
+      {
+        "senales_entrantes": [
+          {{ outputs['2_procesamiento_expertos']['experto_1'].body | json }},
+          {{ outputs['2_procesamiento_expertos']['experto_2'].body | json }},
+          {{ outputs['2_procesamiento_expertos']['experto_3'].body | json }}
+        ],
+        "estrategia": "ESTRUCTURAL_COMPLETO"
+      }
+    timeout: PT10S
+
+  # ==========================================================================
+  # PASO 4: SÍNTESIS (Genera respuesta coherente)
+  # ==========================================================================
+  - id: 4_sintesis
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://moe_api:8000/api/v1/procesar_nodo"
+    method: POST
+    contentType: "application/json"
+    body: |
+      {
+        "meta": {{ outputs['3_unificacion_resultados'].body.meta | json }},
+        "instruccion": {
+          "tipo_estrategia": {{ inputs.senal_entrada.instruccion.configuracion_negocio.estrategia_sintesis | json }},
+          "configuracion_negocio": {{ inputs.senal_entrada.instruccion.configuracion_negocio.config_sintesis | json }}
+        },
+        "historial_chat": {{ outputs['3_unificacion_resultados'].body.historial_chat | json }},
+        "contexto": {{ outputs['3_unificacion_resultados'].body.contexto | json }},
+        "entrada": {{ outputs['3_unificacion_resultados'].body.entrada | json }},
+        "analisis": null
+      }
+    timeout: PT30S
+
+outputs:
+  - id: senal_procesada
+    type: JSON
+    value: "{{ outputs['4_sintesis'].body }}"
+

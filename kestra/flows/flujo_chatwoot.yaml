@@ -1,0 +1,107 @@
+id: flujo_procesamiento_moe
+namespace: sci.vacasantana
+
+description: |
+  Flujo principal de procesamiento MoE con acumulación conversacional.
+  
+  ARQUITECTURA MODULAR Y LIMPIA:
+  - Usa subflujo reutilizable para procesamiento de expertos
+  - Implementa loop while para acumulación conversacional
+  - Finalización ultra-consolidada en un solo endpoint
+
+triggers:
+  - id: webhook_entrada
+    type: io.kestra.plugin.core.trigger.Webhook
+    key: "moe-secret-key"
+    inputs:
+      senal_agente: "{{ trigger.body.senal_agente }}"
+
+inputs:
+  - id: senal_agente
+    type: JSON
+    description: "SenalAgente inicial con datos ya expropiados"
+
+tasks:
+  # ==========================================================================
+  # PASO 1: INICIALIZAR SEÑAL PARA EL LOOP
+  # ==========================================================================
+  - id: 1_inicializar
+    type: io.kestra.plugin.core.log.Log
+    message: "🚀 Iniciando procesamiento MoE para cliente {{ inputs.senal_agente.instruccion.configuracion_negocio.id_cliente_interno }}"
+
+  # ==========================================================================
+  # PASO 2: LOOP WHILE - Procesar hasta que la cola esté vacía
+  # ==========================================================================
+  - id: 2_loop_procesamiento
+    type: io.kestra.plugin.core.flow.Sequential
+    tasks:
+      # Paso 2.1: Procesar expertos
+      - id: procesar_expertos
+        type: io.kestra.plugin.core.flow.Subflow
+        namespace: sci.vacasantana
+        flowId: subflujo_procesamiento_expertos
+        inputs:
+          senal_entrada: "{{ inputs.senal_agente }}"
+        wait: true
+        transmitFailed: true
+
+      # Paso 2.2: Verificar cola y decidir
+      - id: verificar_cola
+        type: io.kestra.plugin.core.http.Request
+        uri: "http://moe_api:8000/api/v1/cola/verificar_y_acumular"
+        method: POST
+        contentType: "application/json"
+        body: |
+          {
+            "senal_actual": {{ outputs['procesar_expertos'].outputs.senal_procesada | json }}
+          }
+        timeout: PT10S
+
+      # Paso 2.3: Loop recursivo si hay mensajes
+      - id: decision_loop
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ outputs['verificar_cola'].body.continue == true }}"
+        then:
+          # Llamar recursivamente al mismo flujo con la señal actualizada
+          - id: loop_recursivo
+            type: io.kestra.plugin.core.flow.Subflow
+            namespace: sci.vacasantana
+            flowId: flujo_procesamiento_moe
+            inputs:
+              senal_agente: "{{ outputs['verificar_cola'].body.senal_actualizada }}"
+            wait: true
+            transmitFailed: true
+            description: "Loop recursivo: vuelve a procesar con mensajes acumulados"
+        else:
+          - id: continuar_finalizacion
+            type: io.kestra.plugin.core.log.Log
+            message: "✅ Cola vacía. Procediendo a finalización."
+
+  # ==========================================================================
+  # PASO 3: SÍNTESIS FINAL Y FINALIZACIÓN CONSOLIDADA
+  # ==========================================================================
+  - id: 3_sintetizar_y_finalizar
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://moe_api:8000/api/v1/procesamiento/sintetizar_y_finalizar"
+    method: POST
+    contentType: "application/json"
+    body: |
+      {
+        "senal_actual": {{ outputs['2_loop_procesamiento']['verificar_cola'].body.senal_actualizada | json }}
+      }
+    timeout: PT60S
+    description: |
+      Endpoint ultra-consolidado que ejecuta en una sola llamada:
+      1. Síntesis Final (genera respuesta completa)
+      2. Guardar transacción en DB
+      3. Enviar respuesta a Chatwoot
+      4. Liberar lock de Redis
+      5. Registrar en Langfuse
+
+  # ==========================================================================
+  # PASO 4: LOG FINAL - Auditoría local
+  # ==========================================================================
+  - id: 4_log_auditoria
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      ✅ Procesamiento MoE completado exitosamente

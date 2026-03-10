@@ -1,0 +1,27 @@
+# Configuración Global del Sistema MoE
+
+[sistema]
+ambiente = "desarrollo"
+idioma_default = "es"
+nivel_log = "INFO"
+
+[llm]
+# Modelos por defecto
+modelo_razonamiento = "gemini-1.5-pro"
+modelo_rapido = "gemini-1.5-flash"
+modelo_embeddings = "text-embedding-3-small" # Compatible con vector(1536)
+
+[vectores]
+dimensiones = 1536
+metrica = "cosine"
+tabla_conocimiento = "base_conocimiento"
+
+[agentes]
+# Estrategias por defecto para el router
+estrategia_default = "ANALISIS_GENERAL"
+estrategia_fallback = "ESCALAR_HUMANO"
+
+[chatwoot]
+base_url = "https://chat.sci-vacasantana.org"
+account_id = 3
+inbox_id = "rBfqdfeaSYxUU7aN8TQ1iqDq" # Identifier de la bandeja API

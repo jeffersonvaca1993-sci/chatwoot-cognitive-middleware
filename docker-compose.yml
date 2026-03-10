@@ -1,0 +1,291 @@
+services:
+  # ============================================================================
+  # 1. BASE DE DATOS UNIFICADA
+  # ============================================================================
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: moe_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-chatwoot_production}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    shm_size: 2gb
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - moe_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 2. CACHÉ Y COLAS
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: moe_redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - moe_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 3. API PRINCIPAL
+  # ============================================================================
+  api:
+    build: .
+    container_name: moe_api
+    restart: always
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    networks:
+      - moe_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 4. CHATWOOT (PERFIL: desactivado)
+  # ============================================================================
+  chatwoot_web:
+    image: chatwoot/chatwoot:latest
+    container_name: moe_chatwoot_web
+    # profiles: [ "desactivado" ]
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      FRONTEND_URL: "https://chat.${DOMAIN_BASE:-sci-vacasantana.org}"
+      POSTGRES_HOST: postgres
+      POSTGRES_USERNAME: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DATABASE: ${POSTGRES_DB:-chatwoot_production}
+      REDIS_URL: "redis://redis:6379"
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY:-replace_me_with_a_long_secret_key}
+    # Ahora (Con limpieza automática de PIDs zombies, cambiar para producción)
+    command: sh -c "rm -f /app/tmp/pids/server.pid && bundle exec rails db:migrate && bundle exec rails s -p 3000 -b 0.0.0.0"
+    volumes:
+      - chatwoot_data:/app/storage
+    networks:
+      - moe_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G # 🔒 Límite ajustado
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  chatwoot_worker:
+    image: chatwoot/chatwoot:latest
+    container_name: moe_chatwoot_worker
+    # profiles: [ "desactivado" ]
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USERNAME: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DATABASE: ${POSTGRES_DB:-chatwoot_production}
+      REDIS_URL: "redis://redis:6379"
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY:-replace_me_with_a_long_secret_key}
+      SIDEKIQ_CONCURRENCY: 1
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    volumes:
+      - chatwoot_data:/app/storage
+    networks:
+      - moe_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 700M # 🔒 Límite ajustado
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 4.1 CHATWOOT INSTALLER (Solo ejecutar una vez si la DB está vacía)
+  # Uso: docker compose --profile setup up chatwoot_installer
+  # ============================================================================
+  chatwoot_installer:
+    image: chatwoot/chatwoot:latest
+    container_name: moe_chatwoot_installer
+    profiles: [ "setup" ]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USERNAME: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DATABASE: ${POSTGRES_DB:-chatwoot_production}
+      REDIS_URL: "redis://redis:6379"
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY:-replace_me_with_a_long_secret_key}
+    command: bundle exec rails db:chatwoot_prepare
+    networks:
+      - moe_net
+
+  ### aún así se debe ejecutar despues docker compose run --rm chatwoot_web bundle exec rails r "Account.create!(name: 'Mi Organizacion'); User.create!(email: ENV['CHATWOOT_ADMIN_EMAIL'], password: ENV['CHATWOOT_ADMIN_PASSWORD'], password_confirmation: ENV['CHATWOOT_ADMIN_PASSWORD'], role: 'administrator', confirmed_at: Time.zone.now, account: Account.first)"
+
+  # ============================================================================
+  # 5. ORQUESTADOR (Kestra)
+  # ============================================================================
+  kestra:
+    image: kestra/kestra:latest
+    container_name: moe_kestra
+    profiles: [ "desactivado" ]
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: server standalone
+    environment:
+      KESTRA_CONFIGURATION: |
+        kestra:
+          server:
+            basic-auth:
+              enabled: true
+              username: ${KESTRA_USER}
+              password: ${KESTRA_PASSWORD}
+          repository:
+            type: h2
+          queue:
+            type: h2
+          storage:
+            type: local
+            local:
+              base-path: /app/storage
+    volumes:
+      - kestra_data:/app/storage
+    networks:
+      - moe_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1536M # 🔒 Límite ajustado (1.5GB)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 6. SEGURIDAD Y ACCESO (Cloudflare Tunnel)
+  # ============================================================================
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: moe_tunnel
+    restart: unless-stopped
+    volumes:
+      - ./config/tunnel.yml:/etc/cloudflared/config.yml:ro
+      - ./7f83cfbc-56d3-4eeb-a943-df85610ea946.json:/etc/cloudflared/7f83cfbc-56d3-4eeb-a943-df85610ea946.json:ro
+    command: tunnel run 7f83cfbc-56d3-4eeb-a943-df85610ea946
+    environment:
+      - DOMAIN_BASE=${DOMAIN_BASE:-sci-vacasantana.org}
+    networks:
+      - moe_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 7. JUSTIBOT (Proxy del Widget)
+  # ============================================================================
+  justibot:
+    build:
+      context: .
+      dockerfile: justibot_service/Dockerfile
+    container_name: justibot
+    restart: always
+    volumes:
+      - ./config.toml:/app/config.toml:ro
+      - ./justibot_service:/app
+      - ./test.txt:/app/test.txt
+    environment:
+      - PORT=8001
+      - CHATWOOT_API_TOKEN=${CHATWOOT_API_TOKEN}
+      - CHATWOOT_BASE_URL=http://moe_chatwoot_web:3000
+      - CHATWOOT_ACCOUNT_ID=${CHATWOOT_ACCOUNT_ID}
+      - CHATWOOT_INBOX_ID=${CHATWOOT_INBOX_ID}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chatwoot_production}
+      - PYTHONUNBUFFERED=1
+    networks:
+      - moe_net
+
+networks:
+  moe_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  kestra_data:
+  chatwoot_data:
+
+

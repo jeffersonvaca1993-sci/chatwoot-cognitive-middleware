@@ -1,0 +1,22 @@
+
+
+# ✅ ID Correcto (El que aparece en tu Dashboard)
+tunnel: 7f83cfbc-56d3-4eeb-a943-df85610ea946
+
+# ✅ Archivo Correcto (El que montaste en el docker-compose)
+credentials-file: /etc/cloudflared/7f83cfbc-56d3-4eeb-a943-df85610ea946.json
+
+ingress:
+  # 👇 CAMBIO CRÍTICO: Escribe el dominio explícitamente
+  - hostname: kestra.sci-vacasantana.org
+    service: http://moe_kestra:8080
+
+  # Regla para Chatwoot (Si la vas a usar en el futuro)
+  - hostname: chat.sci-vacasantana.org
+    service: http://moe_chatwoot_web:3000
+
+  - hostname: justibot.sci-vacasantana.org
+    service: http://justibot:8001
+
+  # Regla final obligatoria
+  - service: http_status:404
