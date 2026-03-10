@@ -2,6 +2,10 @@
 
 > Sistema de IA Conversacional Empresarial con Arquitectura MoE (Mixture of Experts)
 
+> [!IMPORTANT]
+> ⚠️ **Estado del Proyecto: Prueba de Concepto (PoC) / Architecture Sandbox**
+> Este repositorio no está diseñado como un producto final (Drop-in replacement) para producción inmediata. Funciona como un Laboratorio de Arquitectura donde se diseñaron y validaron paradigmas de ingeniería para sistemas de IA compuestos (Compound AI Systems).
+
 ChatGravity es una plataforma de automatización inteligente de atención al cliente que combina múltiples expertos de IA especializados para proporcionar respuestas contextuales y precisas. Integrado con Chatwoot y orquestado mediante Kestra , en proceso de eliminacion de kestra para usar unicamente lnagraft por eficiencia, el sistema mantiene un historial completo de interacciones y gestiona activos de clientes de forma segura.
 
 
